@@ -14,23 +14,33 @@ app.add_middleware(
 )
 
 pdf_processor = PDFProcessor(pdf_path='data/samplepdf.pdf')
-# qna_pipeline = QnAPipeline()
 fine_tuner = FineTuner()
+qna_pipeline = None  # We'll initialize this after fine-tuning
 
 @app.post("/ask/")
 async def ask_question(question: str = Form(...)):
+    qna_pipeline = QnAPipeline()
     try:
+        if qna_pipeline is None:
+            raise HTTPException(status_code=400, detail="Model not fine-tuned yet. Please call /fine-tune/ first.")
+        
         context = pdf_processor.extract_text()
-        answer = fine_tuner.answer_question(context, question)
-        return {"answer": answer}
+        answer = qna_pipeline.get_answer(question, context)
+        print(answer)
+        return {"answer": answer['answer']}
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 
 @app.post("/fine-tune/")
 async def fine_tune_model():
+    # global qna_pipeline
     try:
         context = pdf_processor.extract_text()
         message = fine_tuner.fine_tune(context)
+        
+        # After fine-tuning, initialize the QnAPipeline with the new model
+        # qna_pipeline = QnAPipeline()
+        
         return {"message": message}
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))

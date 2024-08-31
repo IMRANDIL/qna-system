@@ -8,4 +8,5 @@ class QnAPipeline:
 
     def get_answer(self, question, context):
         result = self.qna_pipeline({'question': question, 'context': context})
-        return result['answer']
+        print(result)
+        return result  # Return the full result dictionary
