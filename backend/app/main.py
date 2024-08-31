@@ -1,7 +1,7 @@
 from fastapi import FastAPI, Form
-from app.qna_pipeline import QnAPipeline
-from app.pdf_processor import PDFProcessor
-from app.fine_tuner import FineTuner
+from qna_pipeline import QnAPipeline
+from pdf_processor import PDFProcessor
+from fine_tuner import FineTuner
 
 app = FastAPI()
 pdf_processor = PDFProcessor(pdf_path='app/data/your_pdf_file.pdf')
