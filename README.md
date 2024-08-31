@@ -28,6 +28,13 @@ To start the frontend, navigate to the `frontend` directory and run:
 npm run dev
 ```
 
+## Some Glimpse 
+
+![Screenshot 2024-08-31 104823](https://github.com/user-attachments/assets/6b464362-5875-440c-bbc2-cc59edffe90b)
+
+
+![Screenshot 2024-08-31 104844](https://github.com/user-attachments/assets/4367fb5a-6dec-4b04-a2c6-1ac0733d2717)
+
 ## Contributing
 
 If you'd like to contribute to this project, please fork the repository and create a pull request. We are open to suggestions and improvements.
