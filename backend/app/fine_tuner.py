@@ -5,9 +5,10 @@ from transformers import (AutoModelForQuestionAnswering,
                           TrainingArguments, 
                           Trainer,
                           default_data_collator)
+import torch
 
 class FineTuner:
-    def __init__(self, model_name='distilbert-base-uncased'):
+    def __init__(self, model_name='distilbert-base-uncased-distilled-squad'):
         self.model_name = model_name
         print(f"Loading tokenizer and model: {model_name}")
         self.tokenizer = AutoTokenizer.from_pretrained(model_name)
@@ -59,7 +60,7 @@ class FineTuner:
             data.append({
                 'context': context,
                 'question': question,
-                'answer': {
+                'answers': {
                     'text': [answer],
                     'answer_start': [start_index]
                 }
@@ -79,7 +80,7 @@ class FineTuner:
             )
 
             offset_mapping = inputs.pop("offset_mapping")
-            answers = examples["answer"]
+            answers = examples["answers"]
             start_positions = []
             end_positions = []
 
@@ -127,11 +128,13 @@ class FineTuner:
         training_args = TrainingArguments(
             output_dir='./models',
             per_device_train_batch_size=4,
-            num_train_epochs=3,
+            num_train_epochs=5,
             logging_dir='./logs',
             logging_steps=10,
-            remove_unused_columns=False,
-            learning_rate=5e-5,
+            learning_rate=2e-5,
+            weight_decay=0.01,
+            warmup_ratio=0.1,
+            save_total_limit=1,
         )
 
         print("Initializing Trainer...")
@@ -150,3 +153,19 @@ class FineTuner:
         trainer.save_model('./models/finetuned_model')
 
         return "Model fine-tuned successfully!"
+
+    def answer_question(self, context, question):
+        inputs = self.tokenizer(question, context, return_tensors="pt", truncation=True, padding=True, max_length=384)
+        with torch.no_grad():
+            outputs = self.model(**inputs)
+
+        start_scores = outputs.start_logits
+        end_scores = outputs.end_logits
+
+        start_index = torch.argmax(start_scores)
+        end_index = torch.argmax(end_scores)
+
+        answer_tokens = inputs.input_ids[0][start_index:end_index+1]
+        answer = self.tokenizer.decode(answer_tokens)
+
+        return answer.strip()
