@@ -3,7 +3,8 @@ from datasets import Dataset
 from transformers import (AutoModelForQuestionAnswering, 
                           AutoTokenizer, 
                           TrainingArguments, 
-                          Trainer)
+                          Trainer,
+                          default_data_collator)
 
 class FineTuner:
     def __init__(self, model_name='distilbert-base-uncased'):
@@ -15,7 +16,6 @@ class FineTuner:
     def prepare_data(self, context):
         print("Preparing data...")
 
-        # Define questions and corresponding answers based on the context
         questions_and_answers = [
             {
                 'question': "Who is the applicant?",
@@ -47,62 +47,103 @@ class FineTuner:
             }
         ]
 
-        # Separate lists for the dataset
-        contexts = []
-        questions = []
-        answers_text = []
-        answers_start = []
-
+        data = []
         for qa in questions_and_answers:
             question = qa['question']
             answer = qa['answer']
             start_index = context.find(answer)
             if start_index == -1:
                 print(f"Warning: Answer not found in context for question: '{question}'")
-                continue  # Skip if the answer is not found in the context
+                continue
 
-            contexts.append(context)
-            questions.append(question)
-            answers_text.append([answer])
-            answers_start.append([start_index])
+            data.append({
+                'context': context,
+                'question': question,
+                'answer': {
+                    'text': [answer],
+                    'answer_start': [start_index]
+                }
+            })
 
-        # Create dictionary in the format expected by Dataset.from_dict
-        data = {
-            'context': contexts,
-            'question': questions,
-            'answers': {
-                'text': answers_text,
-                'answer_start': answers_start
-            }
-        }
+        dataset = Dataset.from_list(data)
 
-        return Dataset.from_dict(data)
+        def preprocess_function(examples):
+            questions = [q.strip() for q in examples["question"]]
+            inputs = self.tokenizer(
+                questions,
+                examples["context"],
+                max_length=384,
+                truncation="only_second",
+                return_offsets_mapping=True,
+                padding="max_length",
+            )
+
+            offset_mapping = inputs.pop("offset_mapping")
+            answers = examples["answer"]
+            start_positions = []
+            end_positions = []
+
+            for i, offset in enumerate(offset_mapping):
+                answer = answers[i]
+                start_char = answer["answer_start"][0]
+                end_char = answer["answer_start"][0] + len(answer["text"][0])
+                sequence_ids = inputs.sequence_ids(i)
+
+                # Find the start and end of the context
+                idx = 0
+                while sequence_ids[idx] != 1:
+                    idx += 1
+                context_start = idx
+                while sequence_ids[idx] == 1:
+                    idx += 1
+                context_end = idx - 1
+
+                # If the answer is not fully inside the context, label it (0, 0)
+                if offset[context_start][0] > end_char or offset[context_end][1] < start_char:
+                    start_positions.append(0)
+                    end_positions.append(0)
+                else:
+                    # Otherwise it's the start and end token positions
+                    idx = context_start
+                    while idx <= context_end and offset[idx][0] <= start_char:
+                        idx += 1
+                    start_positions.append(idx - 1)
+
+                    idx = context_end
+                    while idx >= context_start and offset[idx][1] >= end_char:
+                        idx -= 1
+                    end_positions.append(idx + 1)
+
+            inputs["start_positions"] = start_positions
+            inputs["end_positions"] = end_positions
+            return inputs
+
+        return dataset.map(preprocess_function, batched=True, remove_columns=dataset.column_names)
 
     def fine_tune(self, context):
         print("Preparing dataset for fine-tuning...")
         dataset = self.prepare_data(context)
         
-        # Define training arguments
         training_args = TrainingArguments(
             output_dir='./models',
             per_device_train_batch_size=4,
             num_train_epochs=3,
             logging_dir='./logs',
             logging_steps=10,
-            remove_unused_columns=False
+            remove_unused_columns=False,
+            learning_rate=5e-5,
         )
 
         print("Initializing Trainer...")
-        # Define Trainer
         trainer = Trainer(
             model=self.model,
             args=training_args,
             train_dataset=dataset,
             tokenizer=self.tokenizer,
+            data_collator=default_data_collator,
         )
 
         print("Starting training...")
-        # Fine-tune the model
         trainer.train()
         
         print("Saving the model...")
