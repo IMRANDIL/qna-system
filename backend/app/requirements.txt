@@ -1,0 +1,26 @@
+# FastAPI is used for building APIs with Python
+fastapi
+
+# Uvicorn is a lightning-fast ASGI server implementation
+uvicorn
+
+# Transformers provides state-of-the-art general-purpose architectures (BERT, GPT-2, RoBERTa, XLM, DistilBert, XLNet, T5, CTRL)
+transformers
+
+# PyTorch is an open source machine learning library based on the Torch library
+torch
+
+# Datasets is a lightweight and extensible library to easily share and access datasets and evaluation metrics for Natural Language Processing (NLP)
+datasets
+
+# PyPDF2 is a pure-python PDF library capable of splitting, merging together, cropping, and transforming the pages of PDF files
+PyPDF2
+
+# Pandas is a fast, powerful, flexible and easy to use open source data analysis and manipulation tool
+pandas
+
+# Scikit-learn is a simple and efficient tools for predictive data analysis
+scikit-learn
+
+# Python-dotenv reads the key-value pair from .env file and adds them to environment variable
+python-dotenv
