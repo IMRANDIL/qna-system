@@ -20,7 +20,7 @@ class FineTuner:
         questions_and_answers = [
             {
                 'question': "Who is the applicant?",
-                'answer': "Ali Imran Adil"
+                'answer': "Raja Awasthi"
             },
             {
                 'question': "What is the subject of the FIR?",
