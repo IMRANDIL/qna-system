@@ -2,8 +2,16 @@ from fastapi import FastAPI, Form
 from qna_pipeline import QnAPipeline
 from pdf_processor import PDFProcessor
 from fine_tuner import FineTuner
+from fastapi.middleware.cors import CORSMiddleware
 
 app = FastAPI()
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["*"],
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
 # pdf_processor = PDFProcessor(pdf_path='app/data/samplepdf.pdf')
 # qna_pipeline = QnAPipeline()
 # fine_tuner = FineTuner()
